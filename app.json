@@ -1,0 +1,12 @@
+{
+  "name": "minroob",
+  "displayName": "minroob",
+  "expo": {
+    "name": "minroob",
+    "slug": "minroob",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
