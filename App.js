@@ -8,7 +8,7 @@ import AutoMatch from './Pages/AutoMatch';
 import Login from './Pages/Login';
 import AppLoading from './Components/Loading';
 import * as Font from 'expo-font';
-import GameService from './dist';
+import GameService from './gameservice-sdk.js';
 
 const Stack = createStackNavigator();
 
