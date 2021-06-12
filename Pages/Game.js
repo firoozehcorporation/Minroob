@@ -86,7 +86,7 @@ class Game extends Component {
             this.props.sdk.GSLive.TurnBased.AcceptVote(sender._id)
         }
 
-        this.props.sdk.GSLive.TurnBased.OnComplete = (result) => {
+        this.props.sdk.GSLive.TurnBased.OnComplete = async (result) => {
             console.log("[OnComplete]", { result });
             let winner = (
                 result.Outcome[this.state.playerA._id].Rank < result.Outcome[this.state.playerB._id].Rank
@@ -95,6 +95,8 @@ class Game extends Component {
                     :
                     this.state.playerB
             );
+            if (winner._id == this.state.me)
+                await gameservice.Leaderboards.SubmitScore("608829831530e0001945c39b", winner.score)
             this.setState({ winner, winnerModal: true });
             this.refs.winnerModal.open()
         }

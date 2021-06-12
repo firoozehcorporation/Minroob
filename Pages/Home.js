@@ -11,7 +11,8 @@ class Home extends Component {
         super(props);
         this.state = {
             loading: true,
-            user: {}
+            user: {},
+            scores: []
         };
     }
 
@@ -29,6 +30,15 @@ class Home extends Component {
         }
     }
 
+    getLeaderBoard = async () => {
+        try {
+            let result = await this.props.sdk.Leaderboards.GetLeaderBoardDetails("608829831530e0001945c39b", 0, 10);
+            this.setState({ scores: result.scores });
+            this.refs.leaderboardModal.open();
+        } catch (e) {
+            console.error(e);
+        }
+    }
     render() {
         return <View style={style.page}>
             {this.state.loading ?
@@ -56,7 +66,7 @@ class Home extends Component {
                     <Pressable onPress={() => { this.props.props.navigation.navigate("AutoMatch") }} style={style.button}>
                         <Text style={[style.b, { color: "#FFF", textAlign: 'center', fontSize: 18 }]}>شروع بازی</Text>
                     </Pressable>
-                    <Pressable onPress={() => { this.refs.leaderboardModal.open(); }} style={style.button}>
+                    <Pressable onPress={() => { this.getLeaderBoard(); }} style={style.button}>
                         <Text style={[style.b, { color: "#FFF", textAlign: 'center', fontSize: 18 }]}>جدول امتیازات</Text>
                     </Pressable>
                     <Pressable onPress={() => { }} style={style.button}>
@@ -94,7 +104,13 @@ class Home extends Component {
             >
                 <View style={style.Modal}>
                     <View style={style.modalView}>
-
+                        {this.state.scores.map(score => <View style={{ paddingBottom: 15, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'flex-start' }}>
+                            <Image source={`${score.member.logo}`} style={{ width: 60, height: 60, marginLeft: 15 }} />
+                            <View>
+                                <Text style={[style.p, { fontWeight: 'bold', fontSize: 16 }]}>{`${score.member.name}`}</Text>
+                                <Text style={[style.p]}>{`${score.value} امتیاز - ${score.tries} بازی`}</Text>
+                            </View>
+                        </View>)}
                         <Pressable onPress={() => { }} style={[style.button, style.btnOrange]}>
                             <Text style={{ color: "#FFF", textAlign: 'center' }}>
                                 <Ionicons name="md-arrow-back-outline" size={29} color="white" />
