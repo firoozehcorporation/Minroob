@@ -67,6 +67,16 @@ export default StyleSheet.create({
     borderStyle: 'solid',
     borderColor: "#689F38"
   },
+  buttonSec: {
+    padding: 10,
+    marginBottom: 10,
+    width: "100%",
+    borderRadius: 7,
+    backgroundColor: "#81D4FA",
+    borderBottomWidth: 5,
+    borderStyle: 'solid',
+    borderColor: "#29B6F6"
+  },
   redBox: {
     display: 'flex',
     alignItems: 'center',

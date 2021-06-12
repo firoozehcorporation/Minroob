@@ -63,3 +63,10 @@ buck-out/
 # Expo
 .expo/*
 web-build/
+
+.vscode
+android/*
+ios/*
+.expo
+.env
+config.json

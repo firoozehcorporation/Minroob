@@ -17,7 +17,7 @@ class Game extends Component {
             me: this.props.props.route.params.me,
             room: this.props.props.route.params.room,
             playerA: { ...this.props.props.route.params.players[0], level: "مینچی کوچک", score: 0, color: "#ef5350", },
-            playerB: { ...this.props.props.route.params.players[1], level: "مین استوار", score: 0, color: "#03A9F4", },
+            playerB: { ...this.props.props.route.params.players[1], level: "مینچی کوچک", score: 0, color: "#03A9F4", },
             winner: {},
             freeze: false
         };
@@ -27,29 +27,45 @@ class Game extends Component {
         this.getCurrentTurn();
         this.initialMap();
 
-        this.props.sdk.GSLive.TurnBased.OnCurrentTurnMember = async(currentTurn) => {
+        this.props.sdk.GSLive.TurnBased.OnCurrentTurnMember = async (currentTurn) => {
             console.log("[currentTurn]", currentTurn._id, "[Me]", this.state.me);
-            if (currentTurn._id == this.state.me)
-                this.props.sdk.GSLive.TurnBased.TakeTurn(`1|${JSON.stringify(this.initialMap())}`)
-
+            if (currentTurn._id == this.state.me) {
+                console.log(`${JSON.stringify(this.initialMap())}`)
+                await this.props.sdk.GSLive.TurnBased.TakeTurn(`1|${JSON.stringify(this.initialMap())}`)
+            }
             this.setState({ turn: currentTurn._id });
-
-            await this.props.sdk.GSLive.TurnBased.Vote({
-                [this.state.playerA._id]: { Rank:  2, Value: 8 },
-                [this.state.playerB._id]: { Rank:  1, Value: 10 },
-            })
         }
 
         this.props.sdk.GSLive.TurnBased.OnTakeTurn = (sender, turn) => {
+            console.log({ turn })
             let [action, alpa, beta] = turn.split("|");
 
-            if (action == 1) {
-                this.setState({ map: JSON.parse(alpa) });
-                console.log(this.state.map)
-            }
-            if (action == 2) {
-                // console.log("[OnTakeTurn]", { sender, turn }, alpa, beta);
-                this.action(sender._id, parseInt(alpa), parseInt(beta));
+            switch (action) {
+                case "1":
+                    let map = new Array(this.state.length).fill({}).map(() => new Array(this.state.length).fill({}));
+                    (JSON.parse(alpa)).map(bomb => {
+                        map[bomb.x][bomb.y] = { t: "B", by: undefined };
+                    })
+
+                    for (let i = 0; i < this.state.length; i++) {
+                        for (let j = 0; j < this.state.length; j++) {
+                            if (map[i][j].t != "B") map[i][j] = {
+                                t: "N",
+                                by: undefined,
+                                n: 0
+                            };
+                        }
+                    }
+                    for (let i = 0; i < this.state.length; i++) {
+                        for (let j = 0; j < this.state.length; j++) {
+                            if (map[i][j].t != "B") map[i][j].n = this.getn(map, i, j)
+                        }
+                    }
+                    this.setState({ map });
+                    break
+                case "2":
+                    this.action(sender._id, parseInt(alpa), parseInt(beta));
+                    break
             }
         }
 
@@ -72,46 +88,44 @@ class Game extends Component {
 
         this.props.sdk.GSLive.TurnBased.OnComplete = (result) => {
             console.log("[OnComplete]", { result });
+            let winner = (
+                result.Outcome[this.state.playerA._id].Rank < result.Outcome[this.state.playerB._id].Rank
+                    ?
+                    this.state.playerA
+                    :
+                    this.state.playerB
+            );
+            this.setState({ winner, winnerModal: true });
+            this.refs.winnerModal.open()
         }
     }
 
     getCurrentTurn = async () => {
-        this.props.sdk.GSLive.TurnBased.GetCurrentTurnMember()
+        await this.props.sdk.GSLive.TurnBased.GetCurrentTurnMember()
     }
 
     initialMap = () => {
-        let map = new Array(this.state.length).fill({}).map(() => new Array(this.state.length).fill({}));
+        let bombs = [];
         for (let i = 0; i <= this.state.numOfMines; i++) {
             let x = Math.floor(Math.random() * this.state.length);
             let y = Math.floor(Math.random() * this.state.length);
-            if (map[x][y] && map[x][y].type == "bomb") { i++; continue; }
-            map[x][y] = { type: "bomb", selected: false, selector: undefined };
+
+            let isDuplicate = false;
+            for (let bomb in bombs) {
+                if (bomb.x == x && bomb.y == y) { isDuplicate = true; break; }
+            }
+            if (isDuplicate) { i++; continue; }
+            bombs.push({ x, y });
         }
 
-        for (let i = 0; i < this.state.length; i++) {
-            for (let j = 0; j < this.state.length; j++) {
-                if (map[i][j].type != "bomb") map[i][j] = {
-                    type: "none",
-                    selected: false,
-                    selector: undefined,
-                    numOfAroundBombs: 0
-                };
-            }
-        }
-        for (let i = 0; i < this.state.length; i++) {
-            for (let j = 0; j < this.state.length; j++) {
-                if (map[i][j].type != "bomb") map[i][j].numOfAroundBombs = this.getAroundBombs(map, i, j)
-            }
-        }
-
-        return map;
+        return bombs;
     }
 
     select = async (i, j) => {
         if (
             this.state.winner._id != undefined
             ||
-            this.state.map[i][j].selected
+            this.state.map[i][j].by != undefined
             ||
             this.state.freeze)
             return
@@ -130,12 +144,11 @@ class Game extends Component {
     action = async (sender, i, j) => {
         let { map, playerA, playerB } = this.state;
 
-        map[i][j].selected = true;
-        map[i][j].selector = sender;
+        map[i][j].by = sender;
 
         // after ack
-        if (map[i][j].numOfAroundBombs < 1) this.expand(i, j);
-        if (map[i][j].type == "bomb") {
+        if (map[i][j].n < 1) this.expand(i, j);
+        if (map[i][j].t == "B") {
             if (sender == playerA._id) {
                 this.setState({ playerA: { ...playerA, score: playerA.score + 1 } })
             } else {
@@ -162,8 +175,6 @@ class Game extends Component {
                 [this.state.playerB._id]: { Rank: this.state.playerA.score > this.state.playerB.score ? 2 : 1, Value: this.state.playerB.score },
             })
             this.setState({ freeze: true }, async () => {
-                //     this.setState({ winner: playerB, winnerModal: true });
-                //     this.refs.winnerModal.open()
                 await this.props.sdk.GSLive.TurnBased.Vote({
                     [this.state.playerA._id]: { Rank: this.state.playerA.score > this.state.playerB.score ? 1 : 2, Value: this.state.playerA.score },
                     [this.state.playerB._id]: { Rank: this.state.playerA.score > this.state.playerB.score ? 2 : 1, Value: this.state.playerB.score },
@@ -181,12 +192,11 @@ class Game extends Component {
                     y + j > -1 &&
                     x + i < this.state.length &&
                     y + j < this.state.length &&
-                    !map[x + i][y + j].selected &&
-                    map[x + i][y + j].type != "bomb"
+                    map[x + i][y + j].by == undefined &&
+                    map[x + i][y + j].t != "B"
                 ) {
-                    map[x + i][y + j].selected = true;
-                    map[x + i][y + j].selector = this.state.turn;
-                    if (map[x + i][y + j].numOfAroundBombs < 1)
+                    map[x + i][y + j].by = this.state.turn;
+                    if (map[x + i][y + j].n < 1)
                         this.expand(x + i, y + j);
                 }
             }
@@ -199,8 +209,8 @@ class Game extends Component {
         this.props.sdk.GSLive.TurnBased.LeaveRoom();
     }
 
-    getAroundBombs = (map, x, y) => {
-        let numOfAroundBombs = 0;
+    getn = (map, x, y) => {
+        let n = 0;
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
                 if (
@@ -208,12 +218,12 @@ class Game extends Component {
                     y + j > -1 &&
                     x + i < this.state.length &&
                     y + j < this.state.length &&
-                    map[x + i][y + j].type == "bomb"
+                    map[x + i][y + j].t == "B"
                 )
-                    numOfAroundBombs++;
+                    n++;
             }
         }
-        return numOfAroundBombs;
+        return n;
     }
 
     render() {
@@ -241,19 +251,19 @@ class Game extends Component {
                     {row.map((col, j) => <Pressable key={`${i} ${j}`} onPress={() => { this.select(i, j) }}>
                         <View style={[
                             style.tile,
-                            this.state.map[i][j].selected && this.state.map[i][j].type === "none" && { backgroundColor: "#6D4C41" },
-                            this.state.map[i][j].selected && this.state.map[i][j].type === "bomb" && {
+                            this.state.map[i][j].by != undefined && this.state.map[i][j].t === "N" && { backgroundColor: "#6D4C41" },
+                            this.state.map[i][j].by != undefined && this.state.map[i][j].t === "B" && {
                                 backgroundColor: (() => {
-                                    if (this.state.map[i][j].selector == this.state.playerA._id)
+                                    if (this.state.map[i][j].by == this.state.playerA._id)
                                         return this.state.playerA.color
                                     return this.state.playerB.color
                                 })()
                             },
                             { display: 'flex', alignItems: 'center', justifyContent: 'center' }
                         ]}>
-                            {this.state.map[i][j].selected && this.state.map[i][j].type === "bomb" && <Image source={require('../Assets/bomb.svg')} style={{ position: 'absolute', marginLeft: 7, width: 40, height: 40 }} />}
-                            {this.state.map[i][j].selected && this.state.map[i][j].type === "none" && <Text style={{ position: 'absolute', fontWeight: '900', fontSize: 20, color: "#FFF" }}>
-                                {this.state.map[i][j].numOfAroundBombs > 0 && this.state.map[i][j].numOfAroundBombs}
+                            {this.state.map[i][j].by != undefined && this.state.map[i][j].t === "B" && <Image source={require('../Assets/bomb.svg')} style={{ position: 'absolute', marginLeft: 7, width: 40, height: 40 }} />}
+                            {this.state.map[i][j].by != undefined && this.state.map[i][j].t === "N" && <Text style={{ position: 'absolute', fontWeight: '900', fontSize: 20, color: "#FFF" }}>
+                                {this.state.map[i][j].n > 0 && this.state.map[i][j].n}
                             </Text>}
                         </View>
                     </Pressable>)}
@@ -279,10 +289,10 @@ class Game extends Component {
                             <Text style={[style.b, { fontSize: 25, marginBottom: 5, textAlign: 'center' }]}>{this.state.winner.name} برنده شد!</Text>
                             <Text style={[style.p, { fontSize: 18, textAlign: 'center' }]}>{this.state.winner.level}</Text>
                         </View>
-                        <Pressable onPress={() => { }} style={style.button}>
+                        <Pressable onPress={() => this.props.props.navigation.navigate("AutoMatch")} style={style.button}>
                             <Text style={[style.b, { color: "#FFF", textAlign: 'center', fontSize: 18 }]}>بازی دوباره</Text>
                         </Pressable>
-                        <Pressable onPress={() => { }} style={style.button}>
+                        <Pressable onPress={() => this.props.props.navigation.navigate("Home")} style={style.button}>
                             <Text style={[style.b, { color: "#FFF", textAlign: 'center', fontSize: 18 }]}>منوی اصلی</Text>
                         </Pressable>
                     </View>

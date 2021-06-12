@@ -29,17 +29,35 @@ class Login extends Component {
         })
     }
 
+    validateEmail(email) {
+        const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(String(email).toLowerCase());
+    }
+
     Submit = async () => {
-        let { email, password } = this.state;
-        this.setState({ loading: true })
+        let { email, name, password, isRegister } = this.state;
+
+        if (isRegister && (!name || name.length < 3 || name.length > 12))
+            return this.setState({ error: "نام کاربر باید ۳ تا ۱۲ کاراکتر باشد" })
+        if (!password || password.length < 3 || password.length > 32)
+            return this.setState({ error: "رمز عبور باید ۳ تا ۱۲ کاراکتر باشد" })
+
+        if (!this.validateEmail(email))
+            return this.setState({ error: "ایمیل وارد شده صحیح نیست" })
+
+        this.setState({ loading: true });
         try {
-            let token = await this.props.sdk.Authentication.Login(email, password);
+            let token;
+            if (isRegister)
+                token = await this.props.sdk.Authentication.SignUp(name, email, password);
+            else
+                token = await this.props.sdk.Authentication.Login(email, password);
             await AsyncStorage.setItem('userToken', token);
             this.props.props.navigation.navigate("Home");
-            this.setState({ loading: false })
+            this.setState({ loading: false, error: undefined })
         } catch (e) {
             console.error(e);
-            this.setState({ loading: false })
+            this.setState({ loading: false, error: undefined })
         }
     }
 
@@ -57,7 +75,18 @@ class Login extends Component {
                     alignItems: 'center',
                     marginBottom: 20
                 }}>
-                    <Text style={[style.b, { fontSize: 18, margin: 20 }]}>ورود به حساب کاربری</Text>
+                    <Image source={require('../Assets/logo.png')} style={{ width: 150, height: 150 }} />
+                    <Text style={[style.b, { fontSize: 26, margin: 20 }]}>مینروب آنلاین</Text>
+
+                    {this.state.error && <Text style={[style.p, { fontSize: 16, margin: 20, color: "#D81B60" }]}>{this.state.error}</Text>}
+
+                    {this.state.isRegister && <TextInput
+                        style={style.textInput}
+                        placeholder="نام کاربر"
+                        value={this.state.name}
+                        textContentType="nickname"
+                        onChange={e => this.setState({ name: e.target.value })}
+                    />}
 
                     <TextInput
                         style={style.textInput}
@@ -80,6 +109,13 @@ class Login extends Component {
                             {this.state.isRegister ? "ثبت نام" : "ورود"}
                         </Text>
                     </Pressable>
+                    <Pressable onPress={() => this.setState({ isRegister: !this.state.isRegister })} style={style.buttonSec}>
+                        <Text style={[style.b, { color: "#424242", textAlign: 'center', fontSize: 16 }]}>
+                            {this.state.isRegister ? "حساب کاربری دارم!" : "حساب ندارم! ساخت حساب"}
+                        </Text>
+                    </Pressable>
+                    <Image source={require('../Assets/gameservice.png')} style={{ width: 150, height: 30 }} />
+
                 </View>
             }
         </View>

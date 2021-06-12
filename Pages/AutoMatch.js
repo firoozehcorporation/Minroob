@@ -33,12 +33,11 @@ class AutoMatch extends Component {
         this.props.sdk.GSLive.TurnBased.OnJoinedRoom = (joinDetail) => {
             console.log("[OnJoinedRoom]", joinDetail)
             this.setState({
-                players: [...this.state.players,
-                joinDetail.Member],
+                players: [...this.state.players, joinDetail.UserJoined],
                 room: joinDetail.Room,
                 ...(() => {
-                    if (joinDetail.Member.user.isMe == true)
-                        return { me: joinDetail.Member._id }
+                    if (joinDetail.UserJoined.user.isMe == true)
+                        return { me: joinDetail.UserJoined._id }
                 })()
             }, () => {
                 if (this.state.players.length === 2)
