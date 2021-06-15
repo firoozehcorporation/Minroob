@@ -96,7 +96,7 @@ class Game extends Component {
                     this.state.playerB
             );
             if (winner._id == this.state.me)
-                await gameservice.Leaderboards.SubmitScore("608829831530e0001945c39b", winner.score)
+                await this.props.sdk.Leaderboards.SubmitScore("608829831530e0001945c39b", winner.score)
             this.setState({ winner, winnerModal: true });
             this.refs.winnerModal.open()
         }

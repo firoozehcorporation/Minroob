@@ -19,7 +19,7 @@ $ npm run web
 
 برای اجرای تحت اندروید:
 ```
-$ npm run web
+$ npm run android
 ```
 
 مستندات گیم سرویس:
