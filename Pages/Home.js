@@ -5,6 +5,7 @@ import Modal from 'react-native-modalbox';
 import Loading from "../Components/Loading";
 import AsyncStorage from "@react-native-community/async-storage";
 import { Ionicons } from '@expo/vector-icons';
+import GameService from '../gameservice-sdk.js';
 
 class Home extends Component {
     constructor(props) {
@@ -22,7 +23,7 @@ class Home extends Component {
 
     getUser = async () => {
         try {
-            let user = await this.props.sdk.Player.GetCurrentPlayer();
+            let user = await GameService.Player.GetCurrentPlayer();
             await AsyncStorage.setItem("user", user);
             this.setState({ "user": user, loading: false });
         } catch (e) {
@@ -32,7 +33,7 @@ class Home extends Component {
 
     getLeaderBoard = async () => {
         try {
-            let result = await this.props.sdk.Leaderboards.GetLeaderBoardDetails("608829831530e0001945c39b", 0, 10);
+            let result = await GameService.Leaderboards.GetLeaderBoardDetails("608829831530e0001945c39b", 0, 10);
             this.setState({ scores: result.scores });
             this.refs.leaderboardModal.open();
         } catch (e) {

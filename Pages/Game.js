@@ -3,6 +3,7 @@ import { View, Image, Text, Pressable } from 'react-native';
 import style from "../style";
 import Modal from 'react-native-modalbox';
 import { Ionicons } from '@expo/vector-icons';
+import GameService from '../gameservice-sdk.js';
 
 class Game extends Component {
     constructor(props) {
@@ -27,16 +28,16 @@ class Game extends Component {
         this.getCurrentTurn();
         this.initialMap();
 
-        this.props.sdk.GSLive.TurnBased.OnCurrentTurnMember = async (currentTurn) => {
+        GameService.GSLive.TurnBased.OnCurrentTurnMember = async (currentTurn) => {
             console.log("[currentTurn]", currentTurn._id, "[Me]", this.state.me);
             if (currentTurn._id == this.state.me) {
                 console.log(`${JSON.stringify(this.initialMap())}`)
-                await this.props.sdk.GSLive.TurnBased.TakeTurn(`1|${JSON.stringify(this.initialMap())}`)
+                await GameService.GSLive.TurnBased.TakeTurn(`1|${JSON.stringify(this.initialMap())}`)
             }
             this.setState({ turn: currentTurn._id });
         }
 
-        this.props.sdk.GSLive.TurnBased.OnTakeTurn = (sender, turn) => {
+        GameService.GSLive.TurnBased.OnTakeTurn = (sender, turn) => {
             console.log({ turn })
             let [action, alpa, beta] = turn.split("|");
 
@@ -69,24 +70,24 @@ class Game extends Component {
             }
         }
 
-        this.props.sdk.GSLive.TurnBased.OnChoosedNext = (who) => {
+        GameService.GSLive.TurnBased.OnChoosedNext = (who) => {
             console.log("[currentTurn-a]", who._id, "[Me]", this.state.me)
             this.setState({ turn: who._id });
         }
 
-        this.props.sdk.GSLive.TurnBased.OnLeaveRoom = member => {
+        GameService.GSLive.TurnBased.OnLeaveRoom = member => {
             console.log("[onLeft]", member._id, member._id == this.state.me)
             if (member._id == this.state.me)
                 this.props.props.navigation.navigate("Home")
         }
 
-        this.props.sdk.GSLive.TurnBased.OnVoteReceived = (sender, vote) => {
+        GameService.GSLive.TurnBased.OnVoteReceived = (sender, vote) => {
             console.log("[OnVoteReceived]", { sender, vote });
 
-            this.props.sdk.GSLive.TurnBased.AcceptVote(sender._id)
+            GameService.GSLive.TurnBased.AcceptVote(sender._id)
         }
 
-        this.props.sdk.GSLive.TurnBased.OnComplete = async (result) => {
+        GameService.GSLive.TurnBased.OnComplete = async (result) => {
             console.log("[OnComplete]", { result });
             let winner = (
                 result.Outcome[this.state.playerA._id].Rank < result.Outcome[this.state.playerB._id].Rank
@@ -96,14 +97,14 @@ class Game extends Component {
                     this.state.playerB
             );
             if (winner._id == this.state.me)
-                await this.props.sdk.Leaderboards.SubmitScore("608829831530e0001945c39b", winner.score)
+                await GameService.Leaderboards.SubmitScore("608829831530e0001945c39b", winner.score)
             this.setState({ winner, winnerModal: true });
             this.refs.winnerModal.open()
         }
     }
 
     getCurrentTurn = async () => {
-        await this.props.sdk.GSLive.TurnBased.GetCurrentTurnMember()
+        await GameService.GSLive.TurnBased.GetCurrentTurnMember()
     }
 
     initialMap = () => {
@@ -135,7 +136,7 @@ class Game extends Component {
             return console.error(`T: ${this.state.turn} != M: ${this.state.me}`)
 
         this.setState({ freeze: true }, async () => {
-            await this.props.sdk.GSLive.TurnBased.TakeTurn(`2|${i}|${j}`, (() => {
+            await GameService.GSLive.TurnBased.TakeTurn(`2|${i}|${j}`, (() => {
                 if (this.state.playerA._id == this.state.me)
                     return this.state.playerB._id;
                 return this.state.playerA._id;
@@ -177,7 +178,7 @@ class Game extends Component {
                 [this.state.playerB._id]: { Rank: this.state.playerA.score > this.state.playerB.score ? 2 : 1, Value: this.state.playerB.score },
             })
             this.setState({ freeze: true }, async () => {
-                await this.props.sdk.GSLive.TurnBased.Vote({
+                await GameService.GSLive.TurnBased.Vote({
                     [this.state.playerA._id]: { Rank: this.state.playerA.score > this.state.playerB.score ? 1 : 2, Value: this.state.playerA.score },
                     [this.state.playerB._id]: { Rank: this.state.playerA.score > this.state.playerB.score ? 2 : 1, Value: this.state.playerB.score },
                 })
@@ -208,7 +209,7 @@ class Game extends Component {
     }
 
     Left = async () => {
-        this.props.sdk.GSLive.TurnBased.LeaveRoom();
+        GameService.GSLive.TurnBased.LeaveRoom();
     }
 
     getn = (map, x, y) => {

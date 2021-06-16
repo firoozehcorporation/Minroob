@@ -4,6 +4,7 @@ import { TextInput } from "react-native-gesture-handler";
 import style from "../style";
 import AsyncStorage from "@react-native-community/async-storage";
 import Loading from "../Components/Loading";
+import GameService from '../gameservice-sdk.js';
 
 class Login extends Component {
     constructor(props) {
@@ -22,7 +23,7 @@ class Login extends Component {
             }
             if (res) {
                 console.log("[userToken]", res)
-                await this.props.sdk.Authentication.LoginWithToken(res);
+                await GameService.Authentication.LoginWithToken(res);
                 this.props.props.navigation.navigate("Home");
             }
             this.setState({ loading: false })
@@ -49,9 +50,9 @@ class Login extends Component {
         try {
             let token;
             if (isRegister)
-                token = await this.props.sdk.Authentication.SignUp(name, email, password);
+                token = await GameService.Authentication.SignUp(name, email, password);
             else
-                token = await this.props.sdk.Authentication.Login(email, password);
+                token = await GameService.Authentication.Login(email, password);
             await AsyncStorage.setItem('userToken', token);
             this.props.props.navigation.navigate("Home");
             this.setState({ loading: false, error: undefined })

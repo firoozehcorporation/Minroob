@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import style from "../style";
 import { View, Image, Text, Pressable } from 'react-native';
+import GameService from '../gameservice-sdk.js';
 
 class AutoMatch extends Component {
     constructor(props) {
@@ -16,7 +17,7 @@ class AutoMatch extends Component {
     }
 
     componentDidMount() {
-        this.props.sdk.GSLive.TurnBased.AutoMatch({
+        GameService.GSLive.TurnBased.AutoMatch({
             role: "default",
             maxPlayer: 2,
             minPlayer: 2,
@@ -24,13 +25,13 @@ class AutoMatch extends Component {
             extra: ""
         })
 
-        this.props.sdk.GSLive.TurnBased.OnAutoMatchUpdated = (e) => {
+        GameService.GSLive.TurnBased.OnAutoMatchUpdated = (e) => {
             if (typeof e === "string")
                 return console.log("[AutoMatch]", e);
             this.setState({ queue: e });
         }
 
-        this.props.sdk.GSLive.TurnBased.OnJoinedRoom = (joinDetail) => {
+        GameService.GSLive.TurnBased.OnJoinedRoom = (joinDetail) => {
             console.log("[OnJoinedRoom]", joinDetail)
             this.setState({
                 players: [...this.state.players, joinDetail.UserJoined],

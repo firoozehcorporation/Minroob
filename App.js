@@ -18,8 +18,11 @@ class App extends PureComponent {
     super(props);
     this.state = {
       fontsAreLoaded: false,
-      sdk: new GameService("minroobapp", "2n2wtgiktr4rgb282rkuko", true)
     }
+  }
+
+  componentDidMount(){
+    GameService.Initilize("minroobapp", "2n2wtgiktr4rgb282rkuko", true)
   }
 
   async componentWillMount() {
@@ -42,25 +45,25 @@ class App extends PureComponent {
               name="Login"
               options={{ headerShown: false }}
             >
-              {(props) => <Login sdk={this.state.sdk} props={props} />}
+              {(props) => <Login props={props} />}
             </Stack.Screen>
             <Stack.Screen
               name="Home"
               options={{ headerShown: false }}
             >
-              {(props) => <Home sdk={this.state.sdk} props={props} />}
+              {(props) => <Home props={props} />}
             </Stack.Screen>
             <Stack.Screen
               name="AutoMatch"
               options={{ headerShown: false }}
             >
-              {(props) => <AutoMatch sdk={this.state.sdk} props={props} />}
+              {(props) => <AutoMatch props={props} />}
             </Stack.Screen>
             <Stack.Screen
               name="Game"
               options={{ headerShown: false }}
             >
-              {(props) => <Game sdk={this.state.sdk} props={props} />}
+              {(props) => <Game props={props} />}
             </Stack.Screen>
           </Stack.Navigator>
         </NavigationContainer>
